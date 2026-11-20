@@ -1,0 +1,11 @@
+{
+  "name": "mimora-competition-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Independent frontend-only MIMORA competition demonstration",
+  "scripts": {
+    "start": "node server.cjs",
+    "dev": "node server.cjs",
+    "build": "node -e \"console.log('Static MIMORA demo: no compilation required.')\""
+  }
+}
