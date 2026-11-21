@@ -1,18 +1,33 @@
 # MIMORA Competition Demo
 
-A standalone, frontend-only interactive demonstration of MIMORA. All records are synthetic and stored in the current browser using localStorage.
+A standalone, frontend-only interactive demonstration of the MIMORA learning ecosystem. All records are synthetic and stored in the current browser using localStorage.
 
-## Features
+## Product journey
 
-- Four entry points: Student, Guardian, Teacher, Platform Admin.
-- Student workspace separated into **Học cùng thẻ vật lí** and **Lớp học của con**.
-- Official MIMORA physical-card learning space with Chapter 1 (six interactive steps).
-- Class-specific warm criteria headers.
-- Guardian AI-style engagement summaries based only on synthetic participation frequency. These are illustrative signals, not psychological or medical predictions.
-- Separate Guardian–Teacher message threads for each child.
-- Optional original UI click chimes and a gentle generated ambient note sequence. Both are off by default and require user opt-in.
-- Local demo state, Reset Demo, no production APIs, no database, no API keys.
-- Vercel static deployment (`npm run build` -> `public/`).
+- Exactly four entry points: **Học sinh**, **Phụ huynh**, **Giáo viên**, **Quản trị viên**.
+- Student home separates **Học cùng thẻ vật lí** and **Lớp học của con**.
+- Chapter 1 appears only inside the official MIMORA physical-card learning area. Teacher-created class activities are presented as class activities, not as the Default Class Chapter 1.
+- Every class has a warm, editable **Lời hẹn của lớp mình** section with class-specific criteria.
+- Student learning is one step at a time, with optional AAC, Read-Aloud, large text, a pause/resume flow, and calm/playful/high-contrast display preferences.
+- Guardian view includes product activation simulation, linked student accounts, descriptive progress, Care Insights mock data, and one separate message thread per child who has an assigned Teacher.
+- Teacher view includes class management, class-specific criteria, student support context, scoped permission controls, school management mode, and parent communication.
+- Admin view includes SEL content library, approval/publishing, school/class overview, and license administration.
+- Interactions share one coherent local demo state. Reset Demo restores the initial scenario.
+
+## Care Insights and messaging
+
+Care Insights is an illustrative, deterministic summary of synthetic participation counts. It is **not a live AI model**, diagnosis, psychological assessment, or prediction of a child's emotional or health condition. It avoids interpreting student answers or private communication.
+
+Messages are mock conversations stored in the current browser. Guardian–Teacher threads appear only for children who have a Teacher assigned in a class. Each thread is scoped to one child.
+
+## Accessibility and child-centred interaction
+
+- No scores, leaderboards, countdowns, or punitive feedback.
+- Children can pause and resume without penalty.
+- Optional AAC choices and browser Read-Aloud.
+- Calm, playful, and high-contrast display modes.
+- Large text and reduced motion controls.
+- Background music and click sounds are opt-in and off by default.
 
 ## Run locally
 
@@ -28,27 +43,15 @@ Open <http://localhost:3000>.
 npm run build
 ```
 
-Set Vercel:
+Vercel settings:
 - Framework Preset: Other
 - Build Command: `npm run build`
 - Output Directory: `public`
 - Root Directory: the folder containing `package.json`, `vercel.json`, and `index.html`
 
-## Demo notes
+## Important demo limitations
 
-- Student, Guardian, Teacher, and Admin experiences are front-end simulations.
-- Parent–teacher messages remain in local browser state; they are not sent to a server.
-- AI-style notices demonstrate activity-participation trends only. They do not infer emotions, diagnose, or assess SEL progress.
-- Audio uses Web Audio-generated tones; sound effects and background notes are disabled until explicitly enabled.
-
-## Joyful visual and audio update
-
-- Original local SVG illustrations are stored in `assets/` and copied into the Vercel static output by `build.cjs`.
-- The optional background track is **“Happy Loop” by wipics**, sourced from OpenGameArt and listed as CC0/Public Domain on its asset page: https://opengameart.org/content/happy-loop
-- The track only starts after the visitor selects the music control. If the external audio host is unavailable, the demo falls back to a lightweight cheerful melody synthesized locally with Web Audio.
-- Music attribution is shown in the page footer for provenance, although the CC0 dedication does not require attribution.
-
-
-## Cozy storybook visual refresh
-
-The latest theme is implemented in `showcase-theme.css` and is applied consistently across all four portals. The optional background is an original gentle ambient melody synthesized locally with the Web Audio API; it is user-initiated and does not fetch or copy third-party music.
+- This is an independent interactive prototype, not the production MIMORA system.
+- No production backend, TiDB database, email verification, payments, or real authentication are connected.
+- All account, license, class, activation, progress, AI insight, and messaging behavior is simulated in browser state.
+- Do not enter real child information.
