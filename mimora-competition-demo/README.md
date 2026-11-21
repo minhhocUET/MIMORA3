@@ -63,3 +63,19 @@ Its six internal steps are not separate Chapters.
 - Headless Chromium interaction checks — role selection, card activation, Admin publish, Teacher Box creation, School Box class creation, Student learning progress, Guardian progress, and Teacher student-join approval passed.
 - Responsive viewport check at 390px — no horizontal page overflow on the welcome and Guardian overview screens.
 - No uncaught browser page errors in the exercised flows.
+
+## Deploy on Vercel (static hosting)
+
+This project is a static HTML/CSS/JavaScript demo. Vercel should serve the generated `public/` directory; it should not invoke `server.cjs` as a production server.
+
+The repository includes `vercel.json` and `build.cjs` for this setup.
+
+Vercel project settings should be:
+
+- Framework Preset: **Other**
+- Root Directory: the directory containing this `package.json`
+- Build Command: `npm run build`
+- Output Directory: `public`
+- Install Command: leave default (there are no dependencies)
+
+Every push to the connected Git branch triggers a new static deployment. `server.cjs` is only for local development (`npm start`).

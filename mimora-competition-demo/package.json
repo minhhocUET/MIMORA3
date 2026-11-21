@@ -6,6 +6,6 @@
   "scripts": {
     "start": "node server.cjs",
     "dev": "node server.cjs",
-    "build": "node -e \"console.log('Static MIMORA demo: no compilation required.')\""
+    "build": "node build.cjs"
   }
 }
