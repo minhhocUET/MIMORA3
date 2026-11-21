@@ -47,3 +47,8 @@ Set Vercel:
 - The optional background track is **“Happy Loop” by wipics**, sourced from OpenGameArt and listed as CC0/Public Domain on its asset page: https://opengameart.org/content/happy-loop
 - The track only starts after the visitor selects the music control. If the external audio host is unavailable, the demo falls back to a lightweight cheerful melody synthesized locally with Web Audio.
 - Music attribution is shown in the page footer for provenance, although the CC0 dedication does not require attribution.
+
+
+## Cozy storybook visual refresh
+
+The latest theme is implemented in `showcase-theme.css` and is applied consistently across all four portals. The optional background is an original gentle ambient melody synthesized locally with the Web Audio API; it is user-initiated and does not fetch or copy third-party music.

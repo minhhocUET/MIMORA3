@@ -61,7 +61,7 @@
       return `${heading}<button class="nav-item ${state.page===page?'active':''}" data-page="${page}"><span class="nav-ico">${ico}</span>${label}</button>`;
     }).join('');
     const soundHint=state.soundPrefs?.music?'<span class="sidebar-sound">♫ Nhạc nền đang bật</span>':'';
-    return `<div class="app-layout"><aside class="sidebar"><div class="side-profile">${avatar(meta.name,meta.color)}<div class="profile-meta"><strong>${escapeHtml(meta.name)}</strong><span>${escapeHtml(meta.sub)}</span></div></div><div class="side-label">Không gian làm việc</div><nav class="nav-list">${navHtml}</nav><div class="sidebar-bottom">${soundHint}<button class="role-switcher" data-action="switch-role">← Quay lại chọn vai trò</button></div></aside><section class="workspace page-enter">${content}</section></div>`;
+    return `<div class="app-layout role-${state.role}"><aside class="sidebar"><div class="side-profile">${avatar(meta.name,meta.color)}<div class="profile-meta"><strong>${escapeHtml(meta.name)}</strong><span>${escapeHtml(meta.sub)}</span></div></div><div class="side-label">Không gian làm việc</div><nav class="nav-list">${navHtml}</nav><div class="sidebar-bottom">${soundHint}<button class="role-switcher" data-action="switch-role">← Quay lại chọn vai trò</button></div></aside><section class="workspace page-enter">${content}</section></div>`;
   };
 
   window.boxCard = function(box, studentId, action=true){
@@ -263,9 +263,9 @@
   illustrationObserver.observe(main,{childList:true,subtree:true});
   decorateIllustrations();
 
-  // Cheerful CC0 instrumental background track. User starts it manually; no autoplay.
-  const bgMusic=$id('mimoraBgMusic');
-  let audioCtx=null, ambientNodes=null, melodyTimer=null, melodyIndex=0, synthMaster=null;
+  // Original gentle MIMORA ambient melody, synthesized locally with Web Audio.
+  // It is user-initiated, has no remote audio dependency, and never autoplays.
+  let audioCtx=null, melodyTimer=null, noteIndex=0, ambientMaster=null, ambientActive=false;
   const ensureAudio=()=>{
     const Ctx=window.AudioContext||window.webkitAudioContext;
     if(!Ctx)return null;
@@ -273,60 +273,82 @@
     if(audioCtx.state==='suspended')audioCtx.resume();
     return audioCtx;
   };
-  function tone(freq=640,duration=.09,volume=.028,type='sine'){
+  function softTone(freq=523.25,duration=.28,volume=.018,type='sine',when=null){
     const ctx=ensureAudio();if(!ctx)return;
-    const osc=ctx.createOscillator(), gain=ctx.createGain();
-    osc.type=type;osc.frequency.setValueAtTime(freq,ctx.currentTime);
-    gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(volume,ctx.currentTime+.012);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+duration);
-    osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+duration+.02);
+    const t=when??ctx.currentTime;
+    const osc=ctx.createOscillator(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();
+    osc.type=type;osc.frequency.setValueAtTime(freq,t);
+    filter.type='lowpass';filter.frequency.setValueAtTime(1800,t);filter.Q.value=.35;
+    gain.gain.setValueAtTime(.0001,t);
+    gain.gain.exponentialRampToValueAtTime(Math.max(.0002,volume),t+.055);
+    gain.gain.exponentialRampToValueAtTime(.0001,t+duration);
+    osc.connect(filter);filter.connect(gain);gain.connect(ambientMaster||ctx.destination);
+    osc.start(t);osc.stop(t+duration+.04);
   }
   function playClick(){
     if(!state.soundPrefs.effects)return;
-    tone(740,.065,.018,'sine');setTimeout(()=>tone(960,.09,.012,'triangle'),55);
-  }
-  function startSynthFallback(){
-    if(synthMaster)return;
     const ctx=ensureAudio();if(!ctx)return;
-    const master=ctx.createGain();master.gain.setValueAtTime(.0001,ctx.currentTime);master.gain.exponentialRampToValueAtTime(.018,ctx.currentTime+1.8);master.connect(ctx.destination);synthMaster=master;
-    const melody=[523.25,659.25,783.99,659.25,587.33,698.46,880,698.46,523.25,587.33,659.25,783.99,698.46,659.25,587.33,523.25];
-    const bass=[261.63,329.63,392,329.63];melodyIndex=0;
-    const beat=()=>{
-      if(!state.soundPrefs.music||!synthMaster)return;
-      const now=ctx.currentTime, freq=melody[melodyIndex%melody.length];
-      const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='triangle';osc.frequency.setValueAtTime(freq,now);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.24,now+.018);gain.gain.exponentialRampToValueAtTime(.0001,now+.23);osc.connect(gain);gain.connect(synthMaster);osc.start(now);osc.stop(now+.25);
-      if(melodyIndex%4===0){const sub=ctx.createOscillator(),sg=ctx.createGain();sub.type='sine';sub.frequency.value=bass[Math.floor(melodyIndex/4)%bass.length]/2;sg.gain.setValueAtTime(.0001,now);sg.gain.exponentialRampToValueAtTime(.10,now+.025);sg.gain.exponentialRampToValueAtTime(.0001,now+.32);sub.connect(sg);sg.connect(synthMaster);sub.start(now);sub.stop(now+.34);}
-      melodyIndex++;melodyTimer=setTimeout(beat,245);
-    };
-    beat();
+    const t=ctx.currentTime;
+    softTone(587.33,.12,.014,'sine',t);
+    softTone(783.99,.18,.009,'sine',t+.055);
   }
-  function fallbackToCheerfulSynth(){
-    if(!state.soundPrefs.music || synthMaster)return;
-    toast('Không tải được nhạc trực tuyến; đang phát giai điệu vui dự phòng của MIMORA.');
-    startSynthFallback();
+  const chordProgression=[
+    [130.81,164.81,196.00,246.94], // Cmaj7
+    [110.00,130.81,164.81,196.00], // Am7
+    [87.31,130.81,164.81,220.00], // Fmaj7
+    [98.00,146.83,196.00,220.00]  // Gsus2
+  ];
+  const melody=[
+    [523.25,659.25,783.99,659.25,587.33,523.25,440.00,523.25],
+    [493.88,587.33,659.25,587.33,523.25,493.88,392.00,440.00],
+    [440.00,523.25,659.25,587.33,523.25,440.00,392.00,440.00],
+    [493.88,587.33,698.46,659.25,587.33,523.25,493.88,392.00]
+  ];
+  function pluck(freq,at,volume=.012){
+    const ctx=ensureAudio();if(!ctx||!ambientMaster)return;
+    const osc=ctx.createOscillator(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();
+    osc.type='sine';osc.frequency.setValueAtTime(freq,at);
+    filter.type='lowpass';filter.frequency.setValueAtTime(1500,at);
+    gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(volume,at+.09);gain.gain.exponentialRampToValueAtTime(.0001,at+1.15);
+    osc.connect(filter);filter.connect(gain);gain.connect(ambientMaster);osc.start(at);osc.stop(at+1.2);
   }
-  bgMusic?.addEventListener('error',fallbackToCheerfulSynth);
+  function playPad(chord,at){
+    const ctx=ensureAudio();if(!ctx||!ambientMaster)return;
+    chord.forEach((freq,i)=>{
+      const osc=ctx.createOscillator(),gain=ctx.createGain(),filter=ctx.createBiquadFilter();
+      osc.type='sine';osc.frequency.setValueAtTime(freq/2,at);
+      filter.type='lowpass';filter.frequency.setValueAtTime(520,at);
+      gain.gain.setValueAtTime(.0001,at);gain.gain.linearRampToValueAtTime(i===0?.012:.006,at+.65);gain.gain.setValueAtTime(i===0?.012:.006,at+2.15);gain.gain.exponentialRampToValueAtTime(.0001,at+3.4);
+      osc.connect(filter);filter.connect(gain);gain.connect(ambientMaster);osc.start(at);osc.stop(at+3.45);
+    });
+  }
+  function scheduleAmbient(){
+    if(!ambientActive||!audioCtx||!ambientMaster)return;
+    const ctx=audioCtx,step=noteIndex%32,bar=Math.floor(step/8),within=step%8,at=ctx.currentTime+.035;
+    if(within===0)playPad(chordProgression[bar],at);
+    const freq=melody[bar][within];
+    pluck(freq,at,.0105);
+    if(within===2||within===6)pluck(freq*2,at+.08,.0038);
+    noteIndex++;
+    melodyTimer=setTimeout(scheduleAmbient,560); // relaxed, ~107 BPM eighth-note feel
+  }
   function startAmbient(){
-    stopAmbient();state.soundPrefs.music=true;
-    if(bgMusic){
-      bgMusic.volume=.24;bgMusic.currentTime=0;
-      const attempt=bgMusic.play();
-      if(attempt&&typeof attempt.catch==='function')attempt.catch(fallbackToCheerfulSynth);
-      return;
-    }
-    startSynthFallback();
+    stopAmbient();const ctx=ensureAudio();if(!ctx)return;
+    ambientActive=true;state.soundPrefs.music=true;noteIndex=0;
+    ambientMaster=ctx.createGain();ambientMaster.gain.setValueAtTime(.0001,ctx.currentTime);ambientMaster.gain.exponentialRampToValueAtTime(.52,ctx.currentTime+2.2);ambientMaster.connect(ctx.destination);
+    scheduleAmbient();
   }
   function stopAmbient(){
-    state.soundPrefs.music=false;
-    if(bgMusic){bgMusic.pause();try{bgMusic.currentTime=0;}catch(e){}}
+    ambientActive=false;state.soundPrefs.music=false;
     if(melodyTimer){clearTimeout(melodyTimer);melodyTimer=null;}
-    if(synthMaster&&audioCtx){const now=audioCtx.currentTime;synthMaster.gain.cancelScheduledValues(now);synthMaster.gain.setTargetAtTime(.0001,now,.2);synthMaster=null;}
+    if(ambientMaster&&audioCtx){const g=ambientMaster.gain,now=audioCtx.currentTime;g.cancelScheduledValues(now);g.setTargetAtTime(.0001,now,.16);const old=ambientMaster;setTimeout(()=>{try{old.disconnect();}catch(e){}},900);ambientMaster=null;}
   }
   function syncSoundButtons(){
     const fx=$id('fxToggle'),music=$id('musicToggle');
     if(fx){fx.textContent=`♪ Âm bấm: ${state.soundPrefs.effects?'Bật':'Tắt'}`;fx.classList.toggle('sound-active',state.soundPrefs.effects);fx.setAttribute('aria-pressed',String(state.soundPrefs.effects));}
-    if(music){music.textContent=`♫ Nhạc vui: ${state.soundPrefs.music?'Bật':'Tắt'}`;music.classList.toggle('sound-active',state.soundPrefs.music);music.setAttribute('aria-pressed',String(state.soundPrefs.music));}
+    if(music){music.textContent=`♫ Nhạc du dương: ${state.soundPrefs.music?'Bật':'Tắt'}`;music.classList.toggle('sound-active',state.soundPrefs.music);music.setAttribute('aria-pressed',String(state.soundPrefs.music));}
   }
-  $id('fxToggle')?.addEventListener('click',()=>{state.soundPrefs.effects=!state.soundPrefs.effects;saveState();syncSoundButtons();if(state.soundPrefs.effects)tone(760,.12,.025);});
+  $id('fxToggle')?.addEventListener('click',()=>{state.soundPrefs.effects=!state.soundPrefs.effects;saveState();syncSoundButtons();if(state.soundPrefs.effects)playClick();});
   $id('musicToggle')?.addEventListener('click',()=>{if(state.soundPrefs.music)stopAmbient();else startAmbient();saveState();syncSoundButtons();});
   document.addEventListener('click',e=>{if(e.target.closest('button')&&!e.target.closest('#fxToggle,#musicToggle'))playClick();},true);
   const originalResetDemo=window.resetDemo;
