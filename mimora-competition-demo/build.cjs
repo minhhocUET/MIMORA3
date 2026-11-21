@@ -16,4 +16,8 @@ for (const file of files) {
   fs.copyFileSync(source, path.join(output, file));
 }
 
-console.log(`MIMORA static build complete: ${files.length} files copied to public/.`);
+const assetsDir = path.join(root, 'assets');
+if (fs.existsSync(assetsDir)) {
+  fs.cpSync(assetsDir, path.join(output, 'assets'), { recursive: true });
+}
+console.log(`MIMORA static build complete: ${files.length} files and illustration assets copied to public/.`);

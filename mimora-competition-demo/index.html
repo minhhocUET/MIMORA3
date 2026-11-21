@@ -21,7 +21,7 @@
       <div class="topbar-right">
         <span class="demo-pill"><i></i> Bản trải nghiệm demo</span>
         <button class="sound-toggle" id="fxToggle" aria-pressed="false" title="Bật hoặc tắt âm thanh nút bấm">♪ Âm bấm: Tắt</button>
-        <button class="sound-toggle" id="musicToggle" aria-pressed="false" title="Bật hoặc tắt nhạc nền nhẹ">♫ Nhạc nền: Tắt</button>
+        <button class="sound-toggle" id="musicToggle" aria-pressed="false" title="Bật hoặc tắt nhạc nền nhẹ">♫ Nhạc vui: Tắt</button>
         <button class="icon-button" id="resetDemo" title="Đặt lại kịch bản demo" aria-label="Đặt lại demo">↻</button>
         <button class="role-chip hidden" id="switchRole">← Chọn vai trò</button>
       </div>
@@ -30,8 +30,9 @@
     <main id="main" class="main-content" tabindex="-1"></main>
     <div id="toastRegion" class="toast-region" aria-live="polite"></div>
     <div id="modalRoot"></div>
-    <footer class="site-footer"><span>© MIMORA</span><span>Học tập bằng sự thấu hiểu và đồng hành.</span><span>Dữ liệu mô phỏng · Không phải hệ thống production</span></footer>
+    <footer class="site-footer"><span>© MIMORA</span><span>Học tập bằng sự thấu hiểu và đồng hành.</span><span>Dữ liệu mô phỏng · Không phải hệ thống production</span><a class="music-credit" href="https://opengameart.org/content/happy-loop" target="_blank" rel="noopener">Nhạc nền “Happy Loop” · wipics · CC0</a></footer>
   </div>
+  <audio id="mimoraBgMusic" preload="none" loop aria-label="Nhạc nền vui tươi MIMORA"><source src="https://opengameart.org/sites/default/files/happy%20loop.mp3" type="audio/mpeg"></audio>
   <script src="app.js"></script>
   <script src="enhancements.js"></script>
 </body>

@@ -235,8 +235,37 @@
     saveState(); toast('Lời nhắn đã được thêm vào cuộc trò chuyện riêng.'); render();
   },true);
 
-  // Soft original UI sounds via Web Audio. Both are OFF until the user opts in.
-  let audioCtx=null, ambientNodes=null;
+  // Rich local illustrations: original SVG artwork, shipped with the project (no remote image dependencies).
+  function addIllustration(el, src, className, alt){
+    if(!el || el.querySelector(`.${className}`)) return;
+    const img=document.createElement('img');img.src=`assets/${src}`;img.alt=alt;img.className=className;img.loading='lazy';img.decoding='async';
+    el.appendChild(img);
+  }
+  function decorateIllustrations(){
+    document.querySelectorAll('.role-card[data-role]').forEach(card=>{
+      const map={student:['role-student.svg','Minh họa học sinh khám phá cùng quyển sách'],guardian:['role-guardian.svg','Minh họa phụ huynh đồng hành cùng con'],teacher:['role-teacher.svg','Minh họa giáo viên cùng bảng học'],admin:['role-admin.svg','Minh họa quản trị viên và bảng điều khiển']};
+      const item=map[card.dataset.role];if(item)addIllustration(card,item[0],'role-art-image',item[1]);
+    });
+    document.querySelectorAll('.student-space-card.physical .space-art').forEach(el=>{if(!el.querySelector('.space-art-image')){el.textContent='';addIllustration(el,'card-deck.svg','space-art-image','Bộ thẻ học tập MIMORA đầy màu sắc');}});
+    document.querySelectorAll('.student-space-card.classes .space-art').forEach(el=>{if(!el.querySelector('.space-art-image')){el.textContent='';addIllustration(el,'classroom.svg','space-art-image','Lớp học thân thiện với học sinh');}});
+    document.querySelectorAll('.physical-art').forEach(el=>{if(!el.querySelector('.physical-deck-image')){el.innerHTML='';addIllustration(el,'card-deck.svg','physical-deck-image','Bộ thẻ vật lý MIMORA');}});
+    document.querySelectorAll('.chapter-art').forEach(el=>{if(!el.querySelector('.chapter-art-image')){el.textContent='';addIllustration(el,'chapter-feelings.svg','chapter-art-image','Minh họa Chương 1 về cảm xúc và nhu cầu');}});
+    document.querySelectorAll('.class-criteria-icon').forEach(el=>{if(!el.querySelector('.criteria-art-image')){el.textContent='';addIllustration(el,'classroom.svg','criteria-art-image','Không gian lớp học');}});
+    document.querySelectorAll('.ribbon-art').forEach(el=>{if(!el.querySelector('.ribbon-art-image')){el.querySelectorAll('span,i,b').forEach(n=>n.remove());addIllustration(el,'hero-friends.svg','ribbon-art-image','Các bạn nhỏ cùng khám phá và học tập');}});
+    document.querySelectorAll('.topic-card>span').forEach(el=>{if(!el.querySelector('.topic-art-image')){el.textContent='';addIllustration(el,'child-learning.svg','topic-art-image','Học sinh đang trải nghiệm hoạt động học tập');}});
+    document.querySelectorAll('.box-card .box-symbol').forEach(el=>{
+      const box=el.closest('.box-card');const file=box?.classList.contains('default')?'card-deck.svg':box?.classList.contains('classbox')?'classroom.svg':'family-home.svg';
+      if(!el.querySelector('.box-art-image')){el.textContent='';addIllustration(el,file,'box-art-image','Minh họa không gian học tập MIMORA');}
+    });
+    document.querySelectorAll('.family-welcome-art').forEach(el=>{if(!el.querySelector('.family-art-image')){el.textContent='';addIllustration(el,'family-home.svg','family-art-image','Gia đình cùng đồng hành với con');}});
+  }
+  const illustrationObserver=new MutationObserver(()=>requestAnimationFrame(decorateIllustrations));
+  illustrationObserver.observe(main,{childList:true,subtree:true});
+  decorateIllustrations();
+
+  // Cheerful CC0 instrumental background track. User starts it manually; no autoplay.
+  const bgMusic=$id('mimoraBgMusic');
+  let audioCtx=null, ambientNodes=null, melodyTimer=null, melodyIndex=0, synthMaster=null;
   const ensureAudio=()=>{
     const Ctx=window.AudioContext||window.webkitAudioContext;
     if(!Ctx)return null;
@@ -251,25 +280,51 @@
     gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(volume,ctx.currentTime+.012);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+duration);
     osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+duration+.02);
   }
-  function playClick(){if(state.soundPrefs.effects)tone(620,.07,.018,'sine');}
+  function playClick(){
+    if(!state.soundPrefs.effects)return;
+    tone(740,.065,.018,'sine');setTimeout(()=>tone(960,.09,.012,'triangle'),55);
+  }
+  function startSynthFallback(){
+    if(synthMaster)return;
+    const ctx=ensureAudio();if(!ctx)return;
+    const master=ctx.createGain();master.gain.setValueAtTime(.0001,ctx.currentTime);master.gain.exponentialRampToValueAtTime(.018,ctx.currentTime+1.8);master.connect(ctx.destination);synthMaster=master;
+    const melody=[523.25,659.25,783.99,659.25,587.33,698.46,880,698.46,523.25,587.33,659.25,783.99,698.46,659.25,587.33,523.25];
+    const bass=[261.63,329.63,392,329.63];melodyIndex=0;
+    const beat=()=>{
+      if(!state.soundPrefs.music||!synthMaster)return;
+      const now=ctx.currentTime, freq=melody[melodyIndex%melody.length];
+      const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='triangle';osc.frequency.setValueAtTime(freq,now);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.24,now+.018);gain.gain.exponentialRampToValueAtTime(.0001,now+.23);osc.connect(gain);gain.connect(synthMaster);osc.start(now);osc.stop(now+.25);
+      if(melodyIndex%4===0){const sub=ctx.createOscillator(),sg=ctx.createGain();sub.type='sine';sub.frequency.value=bass[Math.floor(melodyIndex/4)%bass.length]/2;sg.gain.setValueAtTime(.0001,now);sg.gain.exponentialRampToValueAtTime(.10,now+.025);sg.gain.exponentialRampToValueAtTime(.0001,now+.32);sub.connect(sg);sg.connect(synthMaster);sub.start(now);sub.stop(now+.34);}
+      melodyIndex++;melodyTimer=setTimeout(beat,245);
+    };
+    beat();
+  }
+  function fallbackToCheerfulSynth(){
+    if(!state.soundPrefs.music || synthMaster)return;
+    toast('Không tải được nhạc trực tuyến; đang phát giai điệu vui dự phòng của MIMORA.');
+    startSynthFallback();
+  }
+  bgMusic?.addEventListener('error',fallbackToCheerfulSynth);
   function startAmbient(){
-    stopAmbient();const ctx=ensureAudio();
-    if(!ctx){state.soundPrefs.music=false;toast('Trình duyệt hiện không hỗ trợ nhạc nền.','error');return;}
-    const master=ctx.createGain();master.gain.setValueAtTime(.0001,ctx.currentTime);master.gain.exponentialRampToValueAtTime(.022,ctx.currentTime+2.8);master.connect(ctx.destination);
-    const oscillators=[];
-    // Original, low-volume warm chord pad; no external or copyrighted recording.
-    [196.00,246.94,293.66,392.00].forEach((freq,i)=>{const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.value=i===3?.16:.24;osc.connect(gain);gain.connect(master);osc.start();oscillators.push(osc);});
-    const lfo=ctx.createOscillator(),lfoGain=ctx.createGain();lfo.frequency.value=.09;lfoGain.gain.value=.003;lfo.connect(lfoGain);lfoGain.connect(master.gain);lfo.start();oscillators.push(lfo);
-    ambientNodes={master,oscillators};state.soundPrefs.music=true;
+    stopAmbient();state.soundPrefs.music=true;
+    if(bgMusic){
+      bgMusic.volume=.24;bgMusic.currentTime=0;
+      const attempt=bgMusic.play();
+      if(attempt&&typeof attempt.catch==='function')attempt.catch(fallbackToCheerfulSynth);
+      return;
+    }
+    startSynthFallback();
   }
   function stopAmbient(){
-    if(ambientNodes&&audioCtx){const now=audioCtx.currentTime;ambientNodes.master.gain.cancelScheduledValues(now);ambientNodes.master.gain.setTargetAtTime(.0001,now,.35);ambientNodes.oscillators.forEach(o=>{try{o.stop(now+1.6);}catch(e){}});}
-    ambientNodes=null;state.soundPrefs.music=false;
+    state.soundPrefs.music=false;
+    if(bgMusic){bgMusic.pause();try{bgMusic.currentTime=0;}catch(e){}}
+    if(melodyTimer){clearTimeout(melodyTimer);melodyTimer=null;}
+    if(synthMaster&&audioCtx){const now=audioCtx.currentTime;synthMaster.gain.cancelScheduledValues(now);synthMaster.gain.setTargetAtTime(.0001,now,.2);synthMaster=null;}
   }
   function syncSoundButtons(){
     const fx=$id('fxToggle'),music=$id('musicToggle');
     if(fx){fx.textContent=`♪ Âm bấm: ${state.soundPrefs.effects?'Bật':'Tắt'}`;fx.classList.toggle('sound-active',state.soundPrefs.effects);fx.setAttribute('aria-pressed',String(state.soundPrefs.effects));}
-    if(music){music.textContent=`♫ Nhạc nền: ${state.soundPrefs.music?'Bật':'Tắt'}`;music.classList.toggle('sound-active',state.soundPrefs.music);music.setAttribute('aria-pressed',String(state.soundPrefs.music));}
+    if(music){music.textContent=`♫ Nhạc vui: ${state.soundPrefs.music?'Bật':'Tắt'}`;music.classList.toggle('sound-active',state.soundPrefs.music);music.setAttribute('aria-pressed',String(state.soundPrefs.music));}
   }
   $id('fxToggle')?.addEventListener('click',()=>{state.soundPrefs.effects=!state.soundPrefs.effects;saveState();syncSoundButtons();if(state.soundPrefs.effects)tone(760,.12,.025);});
   $id('musicToggle')?.addEventListener('click',()=>{if(state.soundPrefs.music)stopAmbient();else startAmbient();saveState();syncSoundButtons();});

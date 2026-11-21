@@ -40,3 +40,10 @@ Set Vercel:
 - Parent–teacher messages remain in local browser state; they are not sent to a server.
 - AI-style notices demonstrate activity-participation trends only. They do not infer emotions, diagnose, or assess SEL progress.
 - Audio uses Web Audio-generated tones; sound effects and background notes are disabled until explicitly enabled.
+
+## Joyful visual and audio update
+
+- Original local SVG illustrations are stored in `assets/` and copied into the Vercel static output by `build.cjs`.
+- The optional background track is **“Happy Loop” by wipics**, sourced from OpenGameArt and listed as CC0/Public Domain on its asset page: https://opengameart.org/content/happy-loop
+- The track only starts after the visitor selects the music control. If the external audio host is unavailable, the demo falls back to a lightweight cheerful melody synthesized locally with Web Audio.
+- Music attribution is shown in the page footer for provenance, although the CC0 dedication does not require attribution.
